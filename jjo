@@ -1,0 +1,102 @@
+package com.example.demo.config;
+
+import com.example.demo.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.security.provisioning.UserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.DefaultRedirectStrategy;
+import org.springframework.security.web.RedirectStrategy;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+
+import javax.sql.DataSource;
+
+@Configuration
+public class WebSecurityConfig {
+
+    final DataSource dataSource;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    public WebSecurityConfig(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    private RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsManager users(DataSource dataSource) {
+        JdbcUserDetailsManager users = new JdbcUserDetailsManager(dataSource);
+
+        // SQL 1: obtener username, password, enabled
+        users.setUsersByUsernameQuery(
+            "SELECT u.username, u.password, u.enabled FROM users u WHERE u.username = ?");
+
+        // SQL 2: obtener username y rol
+        users.setAuthoritiesByUsernameQuery(
+            "SELECT u.username, r.name FROM users u " +
+            "INNER JOIN roles r ON u.role_id = r.id " +
+            "WHERE u.username = ?");
+
+        return users;
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+
+        http.formLogin()
+            .loginPage("/login")
+            .loginProcessingUrl("/processLogin")
+            .successHandler((request, response, authentication) -> {
+
+                // Guardar usuario en sesión
+                String username = authentication.getName();
+                userRepository.findByUsername(username).ifPresent(user -> {
+                    request.getSession().setAttribute("usuarioLogueado", user);
+                });
+
+                // Redirigir según URL guardada o según rol
+                DefaultSavedRequest saved = (DefaultSavedRequest)
+                    request.getSession().getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+
+                if (saved != null) {
+                    redirectStrategy.sendRedirect(request, response, saved.getRedirectUrl());
+                } else {
+                    String rol = authentication.getAuthorities()
+                        .iterator().next().getAuthority();
+                    if (rol.equals("ROLE_ADMIN")) {
+                        response.sendRedirect("/dashboard");
+                    } else {
+                        response.sendRedirect("/dashboard");
+                    }
+                }
+            });
+
+        http.logout()
+            .logoutUrl("/logout")
+            .logoutSuccessUrl("/login")
+            .deleteCookies("JSESSIONID")
+            .invalidateHttpSession(true);
+
+        http.authorizeHttpRequests()
+            .requestMatchers("/canciones/**").hasAuthority("ROLE_ADMIN")
+            .requestMatchers("/playlist/**").hasAuthority("ROLE_USER")
+            .requestMatchers("/historial/**").hasAuthority("ROLE_USER")
+            .requestMatchers("/dashboard").authenticated()
+            .anyRequest().permitAll();
+
+        return http.build();
+    }
+}
+
