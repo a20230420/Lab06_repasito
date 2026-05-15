@@ -103,3 +103,80 @@ llzz
                 <th>#</th>
                 <th​​​​​​​​​​​​​​​​
 
+
+--------
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Canciones</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+
+<nav th:replace="~{layout/base :: navbar}"></nav>
+
+<div class="container mt-4">
+    <h2>Gestión de Canciones</h2>
+
+    <!-- Formulario nueva canción -->
+    <form th:object="${cancion}"
+          th:action="@{/canciones/guardar}"
+          method="post" class="mb-4">
+
+        <div class="row g-2">
+            <div class="col">
+                <input type="text" th:field="*{nombre}"
+                       class="form-control" placeholder="Nombre *">
+            </div>
+            <div class="col">
+                <input type="text" th:field="*{artista}"
+                       class="form-control" placeholder="Artista *">
+            </div>
+            <div class="col">
+                <input type="text" th:field="*{genero}"
+                       class="form-control" placeholder="Género *">
+            </div>
+            <div class="col">
+                <input type="text" th:field="*{duracion}"
+                       class="form-control" placeholder="Duración *">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">
+                    Agregar
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Lista -->
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Artista</th>
+                <th>Género</th>
+                <th>Duración</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="c, i : ${canciones}">
+                <td th:text="${i.count}"></td>
+                <td th:text="${c.nombre}"></td>
+                <td th:text="${c.artista}"></td>
+                <td th:text="${c.genero}"></td>
+                <td th:text="${c.duracion}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(canciones)}">
+                <td colspan="5" class="text-center">
+                    No hay canciones aún.
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
+
