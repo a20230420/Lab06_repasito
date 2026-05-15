@@ -181,4 +181,19 @@ tvgvg
             response.sendRedirect("/dashboard");
         }
     }
-})
+}
+
+kzkl
+
+-- Primero verifica que los roles existan
+SELECT * FROM roles;
+
+-- Insertar usuario admin con password "1234" encriptado con BCrypt
+INSERT INTO users (username, password, enabled, role_id) VALUES 
+('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', true, 1);
+
+-- Insertar usuario normal
+INSERT INTO users (username, password, enabled, role_id) VALUES 
+('user', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', true, 2);
+
+
