@@ -155,3 +155,30 @@ public class PlaylistController {
         return "redirect:/playlist";
     }
 }
+
+
+
+tvgvg
+
+
+.successHandler((request, response, authentication) -> {
+    String username = authentication.getName();
+    userRepository.findByUsername(username).ifPresent(user -> {
+        request.getSession().setAttribute("usuarioLogueado", user);
+    });
+
+    DefaultSavedRequest saved = (DefaultSavedRequest)
+        request.getSession().getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+
+    if (saved != null) {
+        redirectStrategy.sendRedirect(request, response, saved.getRedirectUrl());
+    } else {
+        String rol = authentication.getAuthorities()
+            .iterator().next().getAuthority();
+        if (rol.equals("ROLE_ADMIN")) {
+            response.sendRedirect("/dashboard");
+        } else {
+            response.sendRedirect("/dashboard");
+        }
+    }
+})
