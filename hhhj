@@ -1,0 +1,54 @@
+package com.example.demo.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.io.Serializable;
+
+// NO es @Entity — se guarda en sesión, no en BD
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class Cancion implements Serializable {
+
+    private Long id;
+    private String nombre;
+    private String artista;
+    private String genero;
+    private String duracion;
+}
+
+package com.example.demo.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
+// NO es @Entity — se guarda en sesión, no en BD
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor
+public class PlaylistItem implements Serializable {
+
+    private Cancion cancion;
+    private LocalDateTime fechaAgregado;
+    private String estado; // "Agregado" o "Eliminado"
+}
+
+
+package com.example.demo.repository;
+
+import com.example.demo.entity.User;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByUsername(String username);
+}
+
+
