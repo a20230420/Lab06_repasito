@@ -1,0 +1,157 @@
+package com.example.demo.controller;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+
+@Controller
+public class LoginController {
+
+    @GetMapping("/login")
+    public String login() {
+        return "login/form";
+    }
+
+    @GetMapping("/")
+    public String root() {
+        return "redirect:/login";
+    }
+
+    @GetMapping("/dashboard")
+    public String dashboard() {
+        return "dashboard";
+    }
+}
+
+package com.example.demo.controller;
+
+import com.example.demo.entity.Cancion;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Controller
+@RequestMapping("/canciones")
+public class CancionController {
+
+    // Obtener lista de canciones de la sesión (o crear vacía)
+    @SuppressWarnings("unchecked")
+    private List<Cancion> getCancionesFromSession(HttpSession session) {
+        List<Cancion> canciones = (List<Cancion>) session.getAttribute("canciones");
+        if (canciones == null) {
+            canciones = new ArrayList<>();
+            session.setAttribute("canciones", canciones);
+        }
+        return canciones;
+    }
+
+    // LISTAR
+    @GetMapping
+    public String listar(HttpSession session, Model model) {
+        model.addAttribute("canciones", getCancionesFromSession(session));
+        model.addAttribute("cancion", new Cancion());
+        return "canciones/lista";
+    }
+
+    // GUARDAR
+    @PostMapping("/guardar")
+    public String guardar(@ModelAttribute("cancion") Cancion cancion,
+                          HttpSession session) {
+
+        List<Cancion> canciones = getCancionesFromSession(session);
+
+        // Generar ID simple
+        long nuevoId = canciones.size() + 1L;
+        cancion.setId(nuevoId);
+
+        canciones.add(cancion);
+        session.setAttribute("canciones", canciones);
+
+        return "redirect:/canciones";
+    }
+}
+
+package com.example.demo.controller;
+
+import com.example.demo.entity.Cancion;
+import com.example.demo.entity.PlaylistItem;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Controller
+@RequestMapping("/playlist")
+public class PlaylistController {
+
+    @SuppressWarnings("unchecked")
+    private List<Cancion> getCancionesFromSession(HttpSession session) {
+        List<Cancion> canciones = (List<Cancion>) session.getAttribute("canciones");
+        return canciones != null ? canciones : new ArrayList<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<PlaylistItem> getPlaylistFromSession(HttpSession session) {
+        List<PlaylistItem> playlist = (List<PlaylistItem>) session.getAttribute("playlist");
+        if (playlist == null) {
+            playlist = new ArrayList<>();
+            session.setAttribute("playlist", playlist);
+        }
+        return playlist;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<PlaylistItem> getHistorialFromSession(HttpSession session) {
+        List<PlaylistItem> historial = (List<PlaylistItem>) session.getAttribute("historial");
+        if (historial == null) {
+            historial = new ArrayList<>();
+            session.setAttribute("historial", historial);
+        }
+        return historial;
+    }
+
+    // Ver playlist con canciones disponibles
+    @GetMapping
+    public String verPlaylist(HttpSession session, Model model) {
+        model.addAttribute("cancionesDisponibles", getCancionesFromSession(session));
+        model.addAttribute("playlist", getPlaylistFromSession(session));
+        return "playlist/lista";
+    }
+
+    // Agregar canción a playlist
+    @PostMapping("/agregar/{id}")
+    public String agregar(@PathVariable Long id, HttpSession session) {
+
+        List<Cancion> canciones = getCancionesFromSession(session);
+        List<PlaylistItem> playlist = getPlaylistFromSession(session);
+        List<PlaylistItem> historial = getHistorialFromSession(session);
+
+        // Buscar canción por id
+        Cancion cancion = canciones.stream()
+            .filter(c -> c.getId().equals(id))
+            .findFirst().orElse(null);
+
+        if (cancion == null) return "redirect:/playlist";
+
+        // Validar que no esté ya en playlist
+        boolean yaExiste = playlist.stream()
+            .anyMatch(p -> p.getCancion().getId().equals(id));
+
+        if (!yaExiste) {
+            PlaylistItem item = new PlaylistItem(cancion, LocalDateTime.now(), "Agregado");
+            playlist.add(item);
+            historial.add(new PlaylistItem(cancion, LocalDateTime.now(), "Agregado"));
+            session.setAttribute("playlist", playlist);
+            session.setAttribute("historial", historial);
+        }
+
+        return "redirect:/playlist";
+    }
+}
