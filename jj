@@ -1,0 +1,94 @@
+package com.example.demo.controller;
+
+import com.example.demo.entity.PlaylistItem;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Controller
+@RequestMapping("/historial")
+public class HistorialController {
+
+    @SuppressWarnings("unchecked")
+    private List<PlaylistItem> getHistorialFromSession(HttpSession session) {
+        List<PlaylistItem> historial = (List<PlaylistItem>) session.getAttribute("historial");
+        return historial != null ? historial : new ArrayList<>();
+    }
+
+    // Ver historial
+    @GetMapping
+    public String verHistorial(HttpSession session, Model model) {
+        model.addAttribute("historial", getHistorialFromSession(session));
+        return "historial/lista";
+    }
+
+    // Ver detalle de un item del historial
+    @GetMapping("/detalle/{index}")
+    public String verDetalle(@PathVariable int index,
+                             HttpSession session, Model model) {
+        List<PlaylistItem> historial = getHistorialFromSession(session);
+
+        if (index >= 0 && index < historial.size()) {
+            model.addAttribute("item", historial.get(index));
+        }
+        return "historial/detalle";
+    }
+}
+
+package com.example.demo.controller;
+
+import com.example.demo.entity.Role;
+import com.example.demo.entity.User;
+import com.example.demo.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+
+@Controller
+@RequestMapping("/registro")
+public class RegistroController {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @PersistenceContext
+    private EntityManager em;
+
+    @GetMapping
+    public String mostrarFormulario(Model model) {
+        model.addAttribute("user", new User());
+        return "registro/form";
+    }
+
+    @PostMapping("/guardar")
+    public String guardar(@RequestParam String username,
+                          @RequestParam String password,
+                          @RequestParam String rolNombre) {
+
+        // Buscar el rol
+        Role rol = em.createQuery("SELECT r FROM Role r WHERE r.name = :name", Role.class)
+            .setParameter("name", rolNombre)
+            .getSingleResult();
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setEnabled(true);
+        user.setRole(rol);
+
+        userRepository.save(user);
+        return "redirect:/login";
+    }
+}
